@@ -1,9 +1,11 @@
 <div id="main">
     <div>
-        <h1>List of all persons</h1>
-        {{#each listProjects}}
+        <h1>My projects</h1>
+        {{#each projects}}
             <div>
-            <a href="/projects/{{id}}"> - {{name}} </a> 
+                <h3>
+            <a href="/projects/{{pid}}"> - {{pname}} </a> 
+            </h3>
             </div>
         {{/each}}
     </div>
