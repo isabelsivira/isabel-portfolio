@@ -1,8 +1,20 @@
 <header id="menu">
+    <nav>
     <div>
         <ul>
             <li><a href="/"> Home </a></li>
             <li><a href="/projects"> Projects </a></li>
         </ul>
+        <section>
+            {{#if isLoggedin}}
+            <div>
+                Hi, {{name}}!
+                <a href="/logout">Log out</a>
+            </div>
+            {{else}}
+            <a href="/login"> Log in</a>
+            {{/if}}
+        </section>
     </div>
+    </nav>
 </header>

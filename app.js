@@ -4,8 +4,16 @@ const { engine } = require('express-handlebars');
 const sqlite3 = require('sqlite3')
 const port = 8080 // defines the port
 const app = express();// creates the Express app 
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const connectSqlite3 = require('connect-sqlite3');
+const bcrypt = require("bcrypt"); //loads bcrypt
+//const cookieParser = require('cookie-parser');
+const SQLiteStore = connectSqlite3(session);
 
 app.use(express.static("public"));
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 // MODEL (DATA)
 const db = new sqlite3.Database('isabel-data.db')
@@ -116,7 +124,7 @@ db.run(
           password: "coromoto",
           hash: "coromoto",
           date:"1804",
-          admin: 1,
+          isAdmin: 1,
         },
         {
           id: "1",
@@ -124,7 +132,7 @@ db.run(
           password: "lamancha",
           hash: "lamancha",
           date: "0810",
-          admin: 0,
+          isAdmin: 0,
         },
         {
           id: "2",
@@ -132,7 +140,7 @@ db.run(
           password: "pomposo",
           hash: "peligroso",
           date: "2203",
-          admin: 0,
+          isAdmin: 0,
         },
         {
           id: "3",
@@ -140,7 +148,7 @@ db.run(
           password: "piscina",
           hash: "mantecado",
           date: "1904",
-          admin: 0,
+          isAdmin: 0,
         },
         {
           id: "4",
@@ -148,11 +156,11 @@ db.run(
           password: "lacontrasena",
           hash: "lacontrasena",
           date: "2708",
-          admin: 0,
+          isAdmin: 0,
         },
       ];
       initialUsers.forEach((user) => {
-        //const hash = bcrypt.hashSync(user.password, 10);
+        const hash = bcrypt.hashSync(user.password, 10);
 
         db.run(
           "INSERT INTO users (uid, username, password, hash, email, isAdmin) VALUES (?, ?, ?, ?, ?, ?)",
@@ -162,7 +170,7 @@ db.run(
             user.password,
             hash,
             user.date,
-            user.admin,
+            user.isAdmin,
           ],
           (error) => {
             if (error) {
@@ -213,6 +221,32 @@ db.run(
     }
   })
   
+  //renders the login page
+  app.get('/login', (req, res) => {
+    const model = {};
+    res.render('login.handlebars', model);
+  });
+  
+  app.post('/login', (req, res) => {
+    const un = req.body.un;
+    const pw = req.body.pw;
+  
+   if (un == "isabelita" && pw == "coromoto") {
+    console.log("Hello, master.")
+    req.session.isAdmin = true
+    req.session.isLoggedin = true
+    req.session.name = "Isabel"
+    res.redirect('/')
+   } else {
+    console.log('Uh oh, seems like you messed something up...')
+    req.session.isAdmin = false
+    req.session.isLoggedIn = false
+    req.session.name = ""
+    res.redirect('/login')
+   }
+  });
+  
+
 
 // defines handlebars engine
 app.engine('handlebars', engine());
@@ -221,21 +255,30 @@ app.set('view engine', 'handlebars');
 // defines the views directory
 app.set('views', './views');
 
-
-// define static directory "public"
-app.use(express.static('public'))
-
 // defines a middleware to log all the incoming requests' URL
 app.use((req, res, next) => {
     console.log("Req. URL: ", req.url)
     next()
 })
 
+app.use(session({
+  store: new SQLiteStore({db: "session-bs.db"}),
+  "saveUninitialized": false,
+  "resave": false,
+  "secret": "lOStOBILLOSdEyOONbuM89amarilloamarillolospl4tan0$"
+}))
+
 /***
 ROUTES
 ***/
 // renders a view WITHOUT DATA
 app.get('/', (req, res) => {
+  console.log("SESSION: ", req.session)
+  const model = {
+    isLoggedin: req.session.isLoggedIn,
+    name: req.session.name,
+    isAdmin: req.session.isAdmin
+  }
     res.render('home');
 });
 
