@@ -12,11 +12,108 @@ const bcrypt = require("bcrypt"); //loads bcrypt
 const SQLiteStore = connectSqlite3(session);
 
 app.use(express.static("public"));
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
+app.use(
+  session({
+  store: new SQLiteStore({db: "session-bs.db"}),
+  saveUninitialized: false,
+  resave: false,
+  secret: "lOStOBILLOSdEyOONbuM89amarilloamarillolospl4tan0$"
+}));
+
+// defines handlebars engine
+app.engine('handlebars', engine());
+// defines the view engine to be handlebars
+app.set('view engine', 'handlebars');
+// defines the views directory
+app.set('views', './views');
+
+app.get("/setname", (req, res) => {
+  req.session.name = req.query.name;
+  res.send("Session started");
+});
 
 // MODEL (DATA)
 const db = new sqlite3.Database('isabel-data.db')
+
+  // creates user table at startup
+  db.run(
+    "CREATE TABLE users (uid INTEGER PRIMARY KEY, username TEXT NOT NULL, password TEXT NOT NULL, hash TEXT NOT NULL, date INTEGER NOT NULL, isAdmin INTEGER NOT NULL)",
+    (error) => {
+      if (error) {
+        console.error("ERROR: ", error);
+      } else {
+        console.log("---> Table users created!");
+        const initialUsers = [
+          {
+            id: "0",
+            username: "isabelita",
+            password: "coromoto",
+            hash: "coromoto",
+            date:"1804",
+            isAdmin: 1,
+          },
+          {
+            id: "1",
+            username: "pepe123",
+            password: "lamancha",
+            hash: "lamancha",
+            date: "0810",
+            isAdmin: 0,
+          },
+          {
+            id: "2",
+            username: "eleduardo",
+            password: "pomposo",
+            hash: "pomposo",
+            date: "2203",
+            isAdmin: 0,
+          },
+          {
+            id: "3",
+            username: "coca",
+            password: "piscina",
+            hash: "piscina",
+            date: "1904",
+            isAdmin: 0,
+          },
+          {
+            id: "4",
+            username: "gatinho",
+            password: "lacontrasena",
+            hash: "lacontrasena",
+            date: "2708",
+            isAdmin: 0,
+          },
+        ];
+        initialUsers.forEach((user) => {
+          const hash = bcrypt.hashSync(user.password, 10);
+  
+          db.run(
+            "INSERT INTO users (uid, username, password, hash, date, isAdmin) VALUES (?, ?, ?, ?, ?, ?)",
+            [
+              user.id,
+              user.username,
+              user.password,
+              hash,
+              user.date,
+              user.isAdmin,
+            ],
+            (error) => {
+              if (error) {
+                console.error("ERROR inserting user:", user.username, error);
+              } else {
+                console.log("User added to the users table:", user.username);
+              }
+            }
+          );
+        });
+      }
+    }
+  );
+  
 // creates table projects at startup
 db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, ptype TEXT NOT NULL, pimgURL TEXT NOT NULL)", (error) => {
     if (error) {
@@ -108,84 +205,6 @@ db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, pty
       })
     }
   })
-
-  // creates user table at startup
-db.run(
-  "CREATE TABLE users (uid INTEGER PRIMARY KEY, username TEXT NOT NULL, password TEXT NOT NULL, hash TEXT NOT NULL, date INTEGER NOT NULL, admin INTEGER NOT NULL)",
-  (error) => {
-    if (error) {
-      console.error("ERROR: ", error);
-    } else {
-      console.log("---> Table users created!");
-      const initialUsers = [
-        {
-          id: "0",
-          username: "isabelita",
-          password: "coromoto",
-          hash: "coromoto",
-          date:"1804",
-          isAdmin: 1,
-        },
-        {
-          id: "1",
-          username: "pepe123",
-          password: "lamancha",
-          hash: "lamancha",
-          date: "0810",
-          isAdmin: 0,
-        },
-        {
-          id: "2",
-          username: "eleduardo",
-          password: "pomposo",
-          hash: "peligroso",
-          date: "2203",
-          isAdmin: 0,
-        },
-        {
-          id: "3",
-          username: "coca",
-          password: "piscina",
-          hash: "mantecado",
-          date: "1904",
-          isAdmin: 0,
-        },
-        {
-          id: "4",
-          username: "gatinho",
-          password: "lacontrasena",
-          hash: "lacontrasena",
-          date: "2708",
-          isAdmin: 0,
-        },
-      ];
-      initialUsers.forEach((user) => {
-        const hash = bcrypt.hashSync(user.password, 10);
-
-        db.run(
-          "INSERT INTO users (uid, username, password, hash, email, isAdmin) VALUES (?, ?, ?, ?, ?, ?)",
-          [
-            user.id,
-            user.username,
-            user.password,
-            hash,
-            user.date,
-            user.isAdmin,
-          ],
-          (error) => {
-            if (error) {
-              console.error("ERROR: ", error);
-              // res.status(500).send({ error: "Server error" });
-            } else {
-              console.log("Line added into the projects table!");
-            }
-          }
-        );
-      });
-    }
-  }
-);
-
   
   // creates table projectsSkills at startup
   db.run("CREATE TABLE projectsSkills (psid INTEGER PRIMARY KEY, pid INTEGER, sid INTEGER, FOREIGN KEY (pid) REFERENCES projects (pid), FOREIGN KEY (sid) REFERENCES skills (sid))", (error) => {
@@ -220,66 +239,71 @@ db.run(
       })
     }
   })
-  
-  //renders the login page
-  app.get('/login', (req, res) => {
-    const model = {};
-    res.render('login.handlebars', model);
-  });
-  
-  app.post('/login', (req, res) => {
-    const un = req.body.un;
-    const pw = req.body.pw;
-  
-   if (un == "isabelita" && pw == "coromoto") {
-    console.log("Hello, master.")
-    req.session.isAdmin = true
-    req.session.isLoggedin = true
-    req.session.name = "Isabel"
-    res.redirect('/')
-   } else {
-    console.log('Uh oh, seems like you messed something up...')
-    req.session.isAdmin = false
-    req.session.isLoggedIn = false
-    req.session.name = ""
-    res.redirect('/login')
-   }
-  });
-  
 
 
-// defines handlebars engine
-app.engine('handlebars', engine());
-// defines the view engine to be handlebars
-app.set('view engine', 'handlebars');
-// defines the views directory
-app.set('views', './views');
+ app.post("/logout", (req, res) => {
+  req.session.destroy();
+  res.redirect("/");
+});
+
+
+app.get("/login", (req, res) => {
+  const model = {
+    isLoggedIn: req.session.isLoggedIn,
+    name: req.session.name,
+    isAdmin: req.session.isAdmin,
+  };
+  res.render("login.handlebars", model);
+});
+
+app.post('/login', (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+    if (err) {
+      res.status(500).send({ error: "Server error" });
+    } else if (!user) {
+      console.log("User not found. Username:", username); // Debugging
+      req.session.isLoggedIn = false;
+      res.render("login.handlebars", { error: "User not found" });
+    } else {
+      console.log("Stored username:", user.username);
+      console.log("Stored hashed password:", user.hash);
+      const result = bcrypt.compareSync(password, user.hash);
+      console.log("Password comparison result:", result); // Debugging
+
+      if (result) {
+        req.session.user = user;
+        if (user.isAdmin === 1) {
+          req.session.isAdmin = true;
+          req.session.isLoggedIn = true;
+          req.session.name = "Admin";
+          console.log("Admin is logged in!");
+        } else {
+          req.session.isAdmin = false;
+          req.session.isLoggedIn = true;
+          req.session.name = user.username;
+          console.log("User is logged in!");
+        }
+        res.redirect("/");
+      } else {
+        console.log("Wrong password. Username:", username); // Debugging
+        req.session.isLoggedIn = false;
+        req.session.isAdmin = false;
+        req.session.name = "";
+        res.render("login.handlebars", { error: "Wrong password" });
+      }
+    }
+  });
+});
+
+
 
 // defines a middleware to log all the incoming requests' URL
 app.use((req, res, next) => {
     console.log("Req. URL: ", req.url)
     next()
-})
-
-app.use(session({
-  store: new SQLiteStore({db: "session-bs.db"}),
-  "saveUninitialized": false,
-  "resave": false,
-  "secret": "lOStOBILLOSdEyOONbuM89amarilloamarillolospl4tan0$"
-}))
-
-/***
-ROUTES
-***/
-// renders a view WITHOUT DATA
-app.get('/', (req, res) => {
-  console.log("SESSION: ", req.session)
-  const model = {
-    isLoggedin: req.session.isLoggedIn,
-    name: req.session.name,
-    isAdmin: req.session.isAdmin
-  }
-    res.render('home');
 });
 
 // renders a view WITHOUT DATA
@@ -290,6 +314,15 @@ app.get('/about', (req, res) => {
 // renders a view WITHOUT DATA
 app.get('/contact', (req, res) => {
     res.render('contact');
+});
+app.get("/", (req, res) => {
+  console.log("SESSION: ", req.session);
+  const model = {
+    isLoggedIn: req.session.isLoggedIn,
+    name: req.session.name,
+    isAdmin: req.session.isAdmin,
+  };
+  res.render("home.handlebars", model);
 });
 
 // renders a view WITH DATA!!!
@@ -314,12 +347,6 @@ app.get('/projects', (req, res) => {
             res.render("projects.handlebars", model)
         }
       })
-});
-
-// sends back a SVG image if asked for "/favicon.ico"
-app.get('/favicon.ico', (req, res) => {
-    res.setHeader("Content-Type", "image/svg+xml")
-    res.sendFile(__dirname + "/img/jl.svg")
 });
 
 // run the server and make it listen to the port
