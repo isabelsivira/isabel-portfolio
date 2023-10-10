@@ -1,12 +1,35 @@
-<div id="main">
-    <div>
-        <h1>My projects</h1>
-        {{#each projects}}
-            <div>
-                <h3>
-            <a href="/projects/{{pid}}"> - {{pname}} </a> 
-            </h3>
+<div id="projects-main">
+  <h3>Projects</h3>
+  {{#if isAdmin}}
+    <a href="/projects/new" class="btn">New project</a>
+  {{/if}}
+  <div class="projects-list">
+    {{#if hasDatabaseError}}
+      <div>
+        Sorry, there was a problem with the database:<br />
+        {{theError}}
+      </div>
+    {{else}}
+      {{#each projects}}
+        <div class="flex-container">
+          
+              <a href="/projects/{{pid}}"><img
+                  class="project-img"
+                  src="{{pimgURL}}"
+                  alt="{{pimgURL}}"
+                /></a>
             </div>
-        {{/each}}
-    </div>
+            <div>
+              <h3><a href="/projects/{{pid}}">{{pname}}</a></h3>
+              <h4>{{pyear}} - {{ptype}}</h4>
+            {{#if ../isAdmin}}
+              <a href="/projects/update/{{pid}}" class="btn">Modify</a>
+              <a href="/projects/delete/{{pid}}" class="btn" class="important">Delete</a>
+            {{/if}}
+          
+          </div>
+   
+      {{/each}}
+    {{/if}}
+  </div>
 </div>

@@ -1,20 +1,14 @@
-<header id="menu">
-    <nav>
-    <div>
-        <ul>
-            <li><a href="/"> Home </a></li>
-            <li><a href="/projects"> Projects </a></li>
-        </ul>
-        <section>
-            {{#if isLoggedin}}
-            <div>
-                Hi, {{name}}!
-                <a href="/logout">Log out</a>
-            </div>
-            {{else}}
-            <a href="/login"> Log in</a>
-            {{/if}}
-        </section>
-    </div>
-    </nav>
+
+<header class="navbar">
+  <section class="navbar-section">
+    <a href="/" class="btn btn-link">Home</a>
+    <a href="/projects" class="btn btn-link">Projects</a>
+  </section>
+  <section class="navbar-center">
+    <!-- centered logo or brand -->
+  </section>
+  <section class="navbar-section">
+    <a href="#" class="btn btn-link">About</a>
+    <a href="/login" class="btn btn-link">Log in</a>
+  </section>
 </header>

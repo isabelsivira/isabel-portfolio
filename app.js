@@ -23,6 +23,11 @@ app.use(
   secret: "lOStOBILLOSdEyOONbuM89amarilloamarillolospl4tan0$"
 }));
 
+app.post("/logout", (req, res) => {
+  req.session.destroy();
+  res.redirect("/");
+});
+
 // defines handlebars engine
 app.engine('handlebars', engine());
 // defines the view engine to be handlebars
@@ -85,7 +90,7 @@ const db = new sqlite3.Database('isabel-data.db')
             password: "lacontrasena",
             hash: "lacontrasena",
             date: "2708",
-            isAdmin: 0,
+            isAdmin: 1,
           },
         ];
         initialUsers.forEach((user) => {
@@ -115,7 +120,7 @@ const db = new sqlite3.Database('isabel-data.db')
   );
   
 // creates table projects at startup
-db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, ptype TEXT NOT NULL, pimgURL TEXT NOT NULL)", (error) => {
+db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, ptype TEXT NOT NULL, pyear INTEGER NOT NULL, pimgURL TEXT NOT NULL)", (error) => {
     if (error) {
       // tests error: display error
       console.log("ERROR: ", error)
@@ -127,31 +132,36 @@ db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, pty
         {id :"0", 
         name :"Lamp poster", 
         type :"poster", 
+        year: "2023",
         url:"/img/Lamp-poster.jpg" },
 
         { id:"1", 
         name:"Ichiko Aoba poster", 
         type:"Poster", 
+        year: "2023",
         url:"/img/ichikoooo.jpg" },
 
         { id:"2", 
         name:"Lone Lynx", 
-        type:"Visual Identity", 
+        type:"Visual Identity",
+        year: "2022", 
         url:"/img/sakura.jpeg" },
 
         { id:"3", 
         name:"Jumping frog",
         type: "Game", 
-        url:"/img/satoru.jpeg" },
+        year: "2023",
+        url:"/img/jumping-frog.png" },
         
         { id: "4",
           name: "Our blue",
           type: "poster",
+          year: "2023",
           url: "hahahahahaha"}
       ]
       // inserts projects
       projects.forEach( (oneProject) => {
-        db.run("INSERT INTO projects (pid, pname, ptype, pimgURL) VALUES (?, ?, ?, ?)", [oneProject.id, oneProject.name, oneProject.type, oneProject.url], (error) => {
+        db.run("INSERT INTO projects (pid, pname, ptype, pyear, pimgURL) VALUES (?, ?, ?, ?, ?)", [oneProject.id, oneProject.name, oneProject.type, oneProject.year, oneProject.url], (error) => {
           if (error) {
             console.log("ERROR: ", error)
           } else {
@@ -241,12 +251,6 @@ db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, pty
   })
 
 
- app.post("/logout", (req, res) => {
-  req.session.destroy();
-  res.redirect("/");
-});
-
-
 app.get("/login", (req, res) => {
   const model = {
     isLoggedIn: req.session.isLoggedIn,
@@ -306,9 +310,17 @@ app.use((req, res, next) => {
     next()
 });
 
+app.get('/', (req, res)=> {
+  res.render('home', { user: req.session?.user});
+});
+
 // renders a view WITHOUT DATA
 app.get('/about', (req, res) => {
     res.render('about');
+});
+
+app.get('menu', (req, res)=> {
+  res.render('menu');
 });
 
 // renders a view WITHOUT DATA
@@ -325,28 +337,107 @@ app.get("/", (req, res) => {
   res.render("home.handlebars", model);
 });
 
-// renders a view WITH DATA!!!
-app.get('/projects', (req, res) => {
-    db.all("SELECT * FROM projects", function (error, theProjects) {
+//shows each project on click
+app.get("/projects/:id", function (req, res) {
+  const id = req.params.id;
+
+  db.get(
+    "SELECT * FROM projects WHERE pid = ?",
+    [id],
+    function (error, project) {
+      if (error) {
+        const model = {
+          hasDatabaseError: true,
+          theError: error,
+          isLoggedIn: req.session.isLoggedIn,
+          name: req.session.name,
+          isAdmin: req.session.isAdmin,
+        };
+        res.render("project.handlebars", model);
+      } else if (!project) {
+        // Project not found, send an appropriate response
+        const model = {
+          hasDatabaseError: false,
+          theError: "",
+          isLoggedIn: req.session.isLoggedIn,
+          name: req.session.name,
+          isAdmin: req.session.isAdmin,
+          projectNotFound: true
+        };
+        res.render("project.handlebars", model);
+      } else {
+        const model = {
+          hasDatabaseError: false,
+          theError: "",
+          pid: project.pid,
+          pname: project.pname,
+          pyear: project.pyear,
+          pdesc: project.pdesc,
+          ptype: project.ptype,
+          pimgURL: project.pimgURL,
+          isLoggedIn: req.session.isLoggedIn,
+          name: req.session.name,
+          isAdmin: req.session.isAdmin,
+        };
+        res.render("project.handlebars", model);
+      }
+    }
+  );
+});
+
+
+app.post("/projects/new/", (req, res) => {
+  const np = [
+    req.body.projname,
+    req.body.projyear,
+    req.body.projdesc,
+    req.body.projtype,
+    req.body.projimg,
+  ];
+  if (req.session.isLoggedIn == true && req.session.isAdmin == true) {
+    db.run(
+      "INSERT INTO projects (pname, pyear, pdesc, ptype, pimgURL) VALUES (?, ?, ?, ?, ?)",
+      np,
+      (error) => {
         if (error) {
-            const model = {
-                dbError: true,
-                theError: error,
-                projects: []
-            }
-            // renders the page with the model
-            res.render("projects.handlebars", model)
+          console.log("ERROR: ", error);
+        } else {
+          console.log("Line added into the projects table!");
         }
-        else {
-            const model = {
-                dbError: false,
-                theError: "",
-                projects: theProjects
-            }
-            // renders the page with the model
-            res.render("projects.handlebars", model)
-        }
-      })
+        res.redirect("/projects");
+      }
+    );
+  } else {
+    res.redirect("/login");
+  }
+});
+
+
+// renders a view WITH DATA!!!
+app.get("/projects", function (req, res) {
+  db.all("SELECT * FROM projects", function (error, theProjects) {
+    if (error) {
+      const model = {
+        hasDatabaseError: true,
+        theError: error,
+        projects: [],
+        isLoggedIn: req.session.isLoggedIn,
+        name: req.session.name,
+        isAdmin: req.session.isAdmin,
+      };
+      res.render("projects.handlebars", model);
+    } else {
+      const model = {
+        hasDatabaseError: false,
+        theError: "",
+        projects: theProjects,
+        isLoggedIn: req.session.isLoggedIn,
+        name: req.session.name,
+        isAdmin: req.session.isAdmin,
+      };
+      res.render("projects.handlebars", model);
+    }
+  });
 });
 
 // run the server and make it listen to the port

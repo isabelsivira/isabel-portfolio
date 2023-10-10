@@ -1,9 +1,10 @@
-<div id="main">
-    <div>
-        <h1>Information</h1>
-        
-        <div>
-            {{name}} has ID {{id}}.
-        </div>
-    </div>
-</div>
+{{#if projectNotFound}}
+  <p>Project not found.</p>
+{{else}}
+  <!-- Render project details here -->
+  <img class="indiv-project-img" src="{{pimgURL}}" alt="{{pimgURL}}" />
+  <h1>{{pname}}</h1>
+  <p>Type: {{ptype}}</p>
+  <p>Year: {{pyear}}</p>
+  <!-- Add more project details as needed -->
+{{/if}}

@@ -1,0 +1,70 @@
+<div id="newprojmain">
+  <div>
+    <h3>Create new project</h3>
+  </div>
+  <div>
+    {{#if isLoggedIn}}
+      {{#if isAdmin}}
+        <form id="newprojform" action="/projects/new" method="post">
+          <fieldset>
+            <label for="projname">Project name: </label>
+            <input
+              type="text"
+              name="projname"
+              id="projname"
+              required="required"
+            />
+            <br />
+            <label for="projyear">Project year: </label>
+            <input
+              type="number"
+              name="projyear"
+              id="projyear"
+              placeholder="2023"
+              required="required"
+            />
+            <br />
+            <br />
+            <label for="projdesc">Project description: </label>
+            <br />
+            <textarea
+              name="projdesc"
+              id="projdesc"
+              cols="30"
+              rows="10"
+              required="required"
+            ></textarea>
+            <br />
+            <label for="projtype">Project type: </label>
+            <select
+              type="text"
+              name="projtype"
+              id="projtype"
+              required="required"
+            >
+              <option value="artwork">artwork</option>
+              <option value="university project">university project</option>
+            </select>
+            <br />
+            <label for="projimg">Project image URL: </label>
+            <input
+              type="text"
+              name="projimg"
+              id="projimg"
+              placeholder="/img/"
+              required="required"
+            />
+          </fieldset>
+          <input type="submit" value="Add new project" />
+        </form>
+      {{else}}
+        <p>You must be an administrator to add a new project.</p>
+      {{/if}}
+    {{else}}
+      <p>You must be logged in to add a new project
+        <br />
+        Please go to the
+        <a href="/login">login page.</a></p>
+    {{/if}}
+  </div>
+</div>
