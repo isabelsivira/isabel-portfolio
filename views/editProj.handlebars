@@ -1,40 +1,31 @@
-<div id="newprojmain">
+<div id="modprojmain">
   <div>
-    <h3>Create new project</h3>
+    <h3>Edit project</h3>
   </div>
-  <div>
-    {{#if isLoggedIn}}
+  <div>{{#if isLoggedIn}}
       {{#if isAdmin}}
-        <form id="newprojform" action="/projects/new" method="post">
+        <form action="/projects/update/{{project.pid}}" method="post">
           <fieldset>
             <label for="projname">Project name: </label>
             <input
               type="text"
               name="projname"
               id="projname"
+              value="{{project.pname}}"
               required="required"
             />
-            <br />
+            <br>
             <label for="projyear">Project year: </label>
             <input
               type="number"
               name="projyear"
               id="projyear"
               placeholder="2023"
+              value="{{project.pyear}}"
               required="required"
             />
-            <br />
-            <br />
-            <label for="projdesc">Project description: </label>
-            <br />
-            <textarea
-              name="projdesc"
-              id="projdesc"
-              cols="30"
-              rows="10"
-              required="required"
-            ></textarea>
-            <br />
+            <br>
+            <br>
             <label for="projtype">Project type: </label>
             <select
               type="text"
@@ -42,22 +33,23 @@
               id="projtype"
               required="required"
             >
-              <option value="artwork">artwork</option>
-              <option value="university project">university project</option>
+              <option value="artwork"{{#if (typeDraw project.ptype)}} {{/if}}>artwork</option>
+              <option value="university project"{{#if (typeUni project.ptype)}} {{/if}}>university project</option>
             </select>
-            <br />
+            <br>
             <label for="projimg">Project image URL: </label>
             <input
               type="text"
               name="projimg"
               id="projimg"
               placeholder="/img/"
+              value="{{project.pimgURL}}"
               required="required"
             />
           </fieldset>
-          <input type="submit" value="Add new project" />
+          <input type="submit" value="Modify project" />
         </form>
       {{/if}}
-    {{/if}}
-  </div>
+    {{/if}}</div>
+
 </div>

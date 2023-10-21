@@ -1,35 +1,36 @@
 <div id="projects-main">
-  <h3>Projects</h3>
-  {{#if isAdmin}}
-    <a href="/projects/new" class="btn">New project</a>
-  {{/if}}
-  <div class="projects-list">
-    {{#if hasDatabaseError}}
-      <div>
-        Sorry, there was a problem with the database:<br />
-        {{theError}}
-      </div>
-    {{else}}
-      {{#each projects}}
-        <div class="flex-container">
-          
-              <a href="/projects/{{pid}}"><img
-                  class="project-img"
-                  src="{{pimgURL}}"
-                  alt="{{pimgURL}}"
-                /></a>
-            </div>
-            <div>
-              <h3><a href="/projects/{{pid}}">{{pname}}</a></h3>
-              <h4>{{pyear}} - {{ptype}}</h4>
-            {{#if ../isAdmin}}
-              <a href="/projects/update/{{pid}}" class="btn">Modify</a>
-              <a href="/projects/delete/{{pid}}" class="btn" class="important">Delete</a>
-            {{/if}}
-          
-          </div>
-   
-      {{/each}}
+    <h3>Projects</h3>
+    {{#if isAdmin}}
+    <div>
+      <a href="/projects/new" class="btn">New project</a>
+    </div>
     {{/if}}
-  </div>
+    <div class="container-projects">
+      {{#if hasDatabaseError}}
+        <div>
+          Sorry, there was a problem with the database:<br />
+          {{theError}}
+        </div>
+      {{else}}
+        {{#each projects}}
+        <div class="container text-center">
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4">
+                <a href="/projects/{{pid}}"><img
+                    class="project-img"
+                    src="{{pimgURL}}"
+                    alt="{{pimgURL}}"
+                  /></a>
+              </div>
+                <div class="card-title h5">
+                  <a href="/projects/{{pid}}">{{pname}}</a>
+                <div class="card-subtitle text-gray">{{ptype}} - {{pyear}}</div>
+              {{#if ../isAdmin}}
+                <a href="/projects/update/{{pid}}" class="btn btn-primary">Update project</a>
+                <a href="/projects/delete/{{pid}}" class="btn btn-primary" class="important">Delete Project</a>
+                </div>
+               </div> 
+              {{/if}}
+        {{/each}}
+      {{/if}}
+
 </div>

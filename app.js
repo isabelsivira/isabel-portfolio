@@ -39,6 +39,163 @@ app.get("/setname", (req, res) => {
   req.session.name = req.query.name;
   res.send("Session started");
 });
+app.get("/series", (req, res) => {
+  db.all("SELECT * FROM series", (error, seriesData) => {
+    if (error) {
+      console.log("Error retrieving series data: ", error);
+    } else {
+      const model = {
+        series: seriesData,
+        isLoggedIn: req.session.isLoggedIn,
+        name: req.session.name,
+        isAdmin: req.session.isAdmin,
+      };
+      res.render("serie.handlebars", model);
+    }
+  });
+});
+
+//Adds new projects
+app.get("/projects/new/", (req, res) => {
+  if (req.session.isLoggedIn == true && req.session.isAdmin == true) {
+    const model = {
+      isLoggedIn: req.session.isLoggedIn,
+      name: req.session.name,
+      isAdmin: req.session.isAdmin,
+    };
+    res.render("newproject.handlebars", model);
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.post("/projects/new/", (req, res) => {
+  const np = [
+    req.body.projname,
+    req.body.projtype,
+    req.body.projyear,
+    req.body.projimg,
+  ];
+  if (req.session.isLoggedIn == true && req.session.isAdmin == true) {
+    db.run(
+      "INSERT INTO projects (pname, ptype, pyear, pimgURL) VALUES (?, ?, ?, ?)",
+      np,
+      (error) => {
+        if (error) {
+          console.log("ERROR: ", error);
+        } else {
+          console.log("Line added into the projects table!");
+        }
+        res.redirect("/projects");
+      }
+    );
+  } else {
+    res.redirect("/login");
+  }
+});
+
+//sends the form to modify a project
+app.get("/projects/update/:id", (req, res) => {
+  const id = req.params.id;
+  db.get(
+    "SELECT * FROM projects WHERE pid=?",
+    [id],
+    function (error, theProject) {
+      if (error) {
+        console.log("ERROR: ", error);
+        const model = {
+          dbError: true,
+          theError: error,
+          project: {},
+          isLoggedIn: req.session.isLoggedIn,
+          name: req.session.name,
+          isAdmin: req.session.isAdmin,
+        };
+        res.render("editProj.handlebars", model);
+      } else {
+        const model = {
+          dbError: false,
+          theError: "",
+          project: theProject,
+          isLoggedIn: req.session.isLoggedIn,
+          name: req.session.name,
+          isAdmin: req.session.isAdmin,
+          helpers: {
+            typeDraw(value) {
+              return value == "Drawing";
+            },
+            typeUni(value) {
+              return value == "University";
+            },
+          },
+        };
+        res.render("editProj.handlebars", model);
+      }
+    }
+  );
+});
+
+// modifies an existing project
+app.post("/projects/update/:id", (req, res) => {
+  const id = req.params.id;
+  const np = [
+    req.body.projname,
+    req.body.projyear,
+    req.body.projtype,
+    req.body.projimg,
+    id,
+  ];
+  if (req.session.isLoggedIn == true && req.session.isAdmin == true) {
+    db.run(
+      "UPDATE projects SET pname=?, pyear=?, ptype=?, pimgURL=? WHERE pid=?",
+      np,
+      (error) => {
+        if (error) {
+          console.log("ERROR: ", error);
+        } else {
+          console.log("Project updated!");
+        }
+        res.redirect("/projects");
+      }
+    );
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.get("/projects/delete/:id", (req, res) => {
+  const id = req.params.id;
+  if (req.session.isLoggedIn == true && req.session.isAdmin == true) {
+    db.run(
+      "DELETE FROM projects WHERE pid=?",
+      [id],
+      function (error, theProjects) {
+        if (error) {
+          const model = {
+            dbError: true,
+            theError: error,
+            isLoggedIn: req.session.isLoggedIn,
+            name: req.session.name,
+            isAdmin: req.session.isAdmin,
+          };
+          res.render("home.handlebars", model);
+        } else {
+          const model = {
+            dbError: false,
+            theError: "",
+            isLoggedIn: req.session.isLoggedIn,
+            name: req.session.name,
+            isAdmin: req.session.isAdmin,
+          };
+          res.render("projects.handlebars", model);
+          res.redirect("/projects");
+        }
+      }
+    );
+  } else {
+    res.redirect("/login");
+  }
+});
 
 // MODEL (DATA)
 const db = new sqlite3.Database('isabel-data.db')
@@ -118,6 +275,20 @@ const db = new sqlite3.Database('isabel-data.db')
       }
     }
   );
+
+//creates contact table at startup
+  db.run(
+    `
+    CREATE TABLE contact (id INTEGER PRIMARY KEY, name TEXT, email TEXT, subject TEXT, message TEXT);
+  `,
+    (error) => {
+      if (error) {
+        console.log("ERROR: ", error);
+      } else {
+        console.log("---> Contact table created!");
+      }
+    }
+  );
   
 // creates table projects at startup
 db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, ptype TEXT NOT NULL, pyear INTEGER NOT NULL, pimgURL TEXT NOT NULL)", (error) => {
@@ -145,7 +316,7 @@ db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, pty
         name:"Lone Lynx", 
         type:"Visual Identity",
         year: "2022", 
-        url:"/img/sakura.jpeg" },
+        url:"/img/lone_lynx_branding.jpeg" },
 
         { id:"3", 
         name:"Jumping frog",
@@ -154,10 +325,18 @@ db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, pty
         url:"/img/jumping-frog.png" },
         
         { id: "4",
-          name: "Our blue",
-          type: "poster",
-          year: "2023",
-          url: "hahahahahaha"}
+          name: "Manga reading app",
+          type: "Prototype",
+          year: "2022",
+          url: "/img/Manga-reading-app-prototype.jpeg"},
+
+          { id: "5",
+          name: "Vector-created Chopper",
+          type: "A drawing of the One Piece character Tony Tony Chopper using vector graphics.",
+          year: "2022",
+          url: "/img/doctor_chopper.png"},
+
+
       ]
       // inserts projects
       projects.forEach( (oneProject) => {
@@ -172,83 +351,73 @@ db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, pty
     }
   })
   
-  // creates skills projects at startup
-  db.run("CREATE TABLE skills (sid INTEGER PRIMARY KEY, sname TEXT NOT NULL, sdesc TEXT NOT NULL, stype TEXT NOT NULL)", (error) => {
-    if (error) {
-      // tests error: display error
-      console.log("ERROR: ", error)
-    } else {
-      // tests error: no error, the table has been created
-      console.log("---> Table skills created!")
-  
-      const skills=[
-        {id:"0", 
-        name: "HTML", 
-        type: "Programming language", 
-        desc: "Programming front-end"},
-
-        {id:"1", 
-        name: "CSS", 
-        type: "Programming language", 
-        desc: "Programming aesthetics of a website"},
-
-        {id:"2", 
-        name: "InDesign", 
-        type: "Graphic design software", 
-        desc: "Creating magazines, posters, flyers."},
-
-        {id:"3", 
-        name: "Illustrator", 
-        type: "Graphic design software", 
-        desc: "Creating logos, icons."},
-      ]
-  
-      // inserts skills
-      skills.forEach( (oneSkill) => {
-        db.run("INSERT INTO skills (sid, sname, sdesc, stype) VALUES (?, ?, ?, ?)", [oneSkill.id, oneSkill.name, oneSkill.desc, oneSkill.type], (error) => {
-          if (error) {
-            console.log("ERROR: ", error)
-          } else {
-            console.log("Line added into the skills table!")
-          }
-        })
-      })
+  // creates series at startup
+  db.run(
+    "CREATE TABLE series (sid INTEGER PRIMARY KEY, sname TEXT NOT NULL, stype TEXT NOT NULL, sdesc TEXT NOT NULL)",
+    (error) => {
+      if (error) {
+        // tests error: display error
+        console.log("ERROR: ", error);
+      } else {
+        // tests error: no error, the table has been created
+        console.log("---> Table series created!");
+        const series = [
+          {
+            id: "0",
+            name: "Jojo's Bizarre Adventure",
+            type: "Anime",
+            desc: "The story of the Joestar bloodline.",
+          },
+          {
+            id: "1",
+            name: "Jujutsu Kaisen",
+            type: "Anime",
+            desc: "Sorcerers fight against curses.",
+          },
+          {
+            id: "2",
+            name: "One Piece",
+            type: "Anime",
+            desc: "Monkey D. Luffy wants to become the king of the pirates.",
+          },
+          {
+            id: "3",
+            name: "Dororo",
+            type: "Anime",
+            desc: "Kid was cursed when he was born and tries to undo it.",
+          },
+          {
+            id: "4",
+            name: "Bungo Stray Dogs",
+            type: "Anime",
+            desc: "Detective agency of people with super powers fighting evil.",
+          },
+          {
+            id: "5",
+            name: "Vinland Saga",
+            type: "Anime",
+            desc: "Kid who was a murderer seeks redemption by creating a land free of war.",
+          },
+        ];
+        // inserts series
+        series.forEach((oneSeries) => {
+          db.run(
+            "INSERT INTO series (sid, sname, stype, sdesc) VALUES (?, ?, ?, ?)",
+            [oneSeries.id, oneSeries.name, oneSeries.type, oneSeries.desc],
+            (error) => {
+              if (error) {
+                console.log("ERROR: ", error);
+              } else {
+                console.log("Line added into the series table!");
+              }
+            }
+          );
+        });
+      }
     }
-  })
-  
-  // creates table projectsSkills at startup
-  db.run("CREATE TABLE projectsSkills (psid INTEGER PRIMARY KEY, pid INTEGER, sid INTEGER, FOREIGN KEY (pid) REFERENCES projects (pid), FOREIGN KEY (sid) REFERENCES skills (sid))", (error) => {
-    if (error) {
-      // tests error: display error
-      console.log("ERROR: ", error)
-    } else {
-      // tests error: no error, the table has been created
-      console.log("---> Table projectsSkills created!")
-  
-      const projectsSkills=[
-        {"id":"1", "pid":"1", "sid": "2"},
-        {"id":"2", "pid":"1", "sid": "8"},
-        {"id":"3", "pid":"1", "sid": "9"},
-        {"id":"4", "pid":"2", "sid": "3"},
-        {"id":"5", "pid":"2", "sid": "4"},
-        {"id":"6", "pid":"3", "sid": "1"},
-        {"id":"7", "pid":"4", "sid": "2"},
-        {"id":"8", "pid":"4", "sid": "8"},
-        {"id":"9", "pid":"4", "sid": "9"},
-        {"id":"10", "pid":"5", "sid": "1"}
-      ]
-      // inserts projectsSkills
-      projectsSkills.forEach( (oneProjectSkill) => {
-        db.run("INSERT INTO projectsSkills (psid, pid, sid) VALUES (?, ?, ?)", [oneProjectSkill.id, oneProjectSkill.pid, oneProjectSkill.sid], (error) => {
-          if (error) {
-            console.log("ERROR: ", error)
-          } else {
-            console.log("Line added into the projectsSkills table!")
-          }
-        })
-      })
-    }
-  })
+  );
+
+
 
 
 app.get("/login", (req, res) => {
@@ -319,7 +488,7 @@ app.get('/about', (req, res) => {
     res.render('about');
 });
 
-app.get('menu', (req, res)=> {
+app.get('/menu', (req, res)=> {
   res.render('menu');
 });
 
@@ -372,7 +541,6 @@ app.get("/projects/:id", function (req, res) {
           pid: project.pid,
           pname: project.pname,
           pyear: project.pyear,
-          pdesc: project.pdesc,
           ptype: project.ptype,
           pimgURL: project.pimgURL,
           isLoggedIn: req.session.isLoggedIn,
@@ -385,32 +553,6 @@ app.get("/projects/:id", function (req, res) {
   );
 });
 
-
-app.post("/projects/new/", (req, res) => {
-  const np = [
-    req.body.projname,
-    req.body.projyear,
-    req.body.projdesc,
-    req.body.projtype,
-    req.body.projimg,
-  ];
-  if (req.session.isLoggedIn == true && req.session.isAdmin == true) {
-    db.run(
-      "INSERT INTO projects (pname, pyear, pdesc, ptype, pimgURL) VALUES (?, ?, ?, ?, ?)",
-      np,
-      (error) => {
-        if (error) {
-          console.log("ERROR: ", error);
-        } else {
-          console.log("Line added into the projects table!");
-        }
-        res.redirect("/projects");
-      }
-    );
-  } else {
-    res.redirect("/login");
-  }
-});
 
 
 // renders a view WITH DATA!!!
