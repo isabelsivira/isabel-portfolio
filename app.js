@@ -121,11 +121,14 @@ app.get("/projects/update/:id", (req, res) => {
           name: req.session.name,
           isAdmin: req.session.isAdmin,
           helpers: {
-            typeDraw(value) {
-              return value == "Drawing";
+            typePoster(value) {
+              return value == "Poster";
             },
             typeUni(value) {
-              return value == "University";
+              return value == "University project";
+            },
+            typeArt (value) {
+              return value == "Art Project"
             },
           },
         };
@@ -279,7 +282,7 @@ const db = new sqlite3.Database('isabel-data.db')
 //creates contact table at startup
   db.run(
     `
-    CREATE TABLE contact (id INTEGER PRIMARY KEY, name TEXT, email TEXT, subject TEXT, message TEXT);
+    CREATE TABLE contact (cid INTEGER PRIMARY KEY, cname TEXT NOT NULL, cemail TEXT NOT NULL, csubject TEXT NOT NULL, cmessage TEXT NOT NULL);
   `,
     (error) => {
       if (error) {
@@ -416,10 +419,7 @@ db.run("CREATE TABLE projects (pid INTEGER PRIMARY KEY, pname TEXT NOT NULL, pty
       }
     }
   );
-
-
-
-
+  
 app.get("/login", (req, res) => {
   const model = {
     isLoggedIn: req.session.isLoggedIn,
@@ -429,6 +429,7 @@ app.get("/login", (req, res) => {
   res.render("login.handlebars", model);
 });
 
+//login adapted from Linus Rudbeck's code shown in the lectures
 app.post('/login', (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
@@ -471,8 +472,6 @@ app.post('/login', (req, res) => {
   });
 });
 
-
-
 // defines a middleware to log all the incoming requests' URL
 app.use((req, res, next) => {
     console.log("Req. URL: ", req.url)
@@ -483,6 +482,240 @@ app.get('/', (req, res)=> {
   res.render('home', { user: req.session?.user});
 });
 
+//contact form submission
+app.post("/contact", (req, res) => {
+  const { name, email, subject, message } = req.body;
+
+  const model = {
+    isLoggedIn: req.session.isLoggedIn,
+    name: req.session.name,
+    isAdmin: req.session.isAdmin,
+  };
+
+  // Insert the form data into the database
+  db.run(
+    `
+    INSERT INTO contact (cname, cemail, csubject, cmessage)
+    VALUES (?, ?, ?, ?)
+  `,
+    [name, email, subject, message],
+    (error) => {
+      if (error) {
+        console.log("Error inserting data into the contact table: ", error);
+      } else {
+        console.log("Data inserted into the contact table.");
+      }
+      res.render("contact.handlebars", model);
+    }
+  );
+});
+
+
+//defines the contact route
+app.get("/contact", (req, res) => {
+  db.all("SELECT * FROM contact", (error, contactData) => {
+    if (error) {
+      console.log("Error retrieving contact data: ", error);
+    } else {
+      const model = {
+        contact: contactData,
+        isLoggedIn: req.session.isLoggedIn,
+        name: req.session.name,
+        isAdmin: req.session.isAdmin,
+      };
+      res.render("contact.handlebars", model);
+    }
+  });
+});
+
+app.get("/messages", (req, res) => {
+    db.all("SELECT * FROM contact", (error, contact) => {
+      if (error) {
+        const model = {
+          hasDatabaseError: true,
+          theError: error,
+          isLoggedIn: req.session.isLoggedIn,
+          name: req.session.name,
+          isAdmin: req.session.isAdmin,
+          contact: contact,
+        };
+        res.render("messages.handlebars", model);
+      } else {
+        const model = {
+          hasDatabaseError: false,
+          theError: "",
+          isLoggedIn: req.session.isLoggedIn,
+          name: req.session.name,
+          isAdmin: req.session.isAdmin,
+          contact: contact,
+        };
+        res.render("messages.handlebars", model);
+      }
+    });
+});
+
+// creates a new message
+app.post("/messages", (req, res) => {
+  const nm = [
+    req.body.contname,
+    req.body.contemail,
+    req.body.conttype,
+    req.body.contmessage,
+  ];
+
+  if (req.session.isLoggedIn == true && req.session.isAdmin == true) {
+    db.run(
+      "INSERT INTO contact (cname, cemail, ctype, cmessage) VALUES (?, ?, ?, ?)",
+      nm,
+      (error) => {
+        if (error) {
+          console.log("ERROR: ", error);
+        } else {
+          console.log("Line added into the contact table!");
+        }
+        res.redirect("/contact");
+      }
+    );
+  } else {
+    res.redirect("/login");
+  }
+});
+
+// delete a message from messages page
+app.post("/messages/delete/:id", (req, res) => {
+  if (req.session.isLoggedIn && req.session.isAdmin) {
+    const id = req.params.id;
+
+    // deleting the entry
+    db.run("DELETE FROM contact WHERE cid = ?", [id], (error) => {
+      if (error) {
+        const model = {
+          hasDatabaseError: true,
+          theError: error,
+          isLoggedIn: req.session.isLoggedIn,
+          name: req.session.name,
+          isAdmin: req.session.isAdmin,
+        };
+        res.render("messages", model);
+      } else {
+        res.redirect("/messages");
+      }
+    });
+  } else {
+    res.redirect("/login");
+  }
+});
+
+// Create a new series (GET and POST)
+app.get("/series/new", (req, res) => {
+  if (req.session.isLoggedIn && req.session.isAdmin) {
+    const model = {
+      isLoggedIn: req.session.isLoggedIn,
+      name: req.session.name,
+      isAdmin: req.session.isAdmin,
+    };
+    res.render("newseries.handlebars", model);
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.post("/series/new", (req, res) => {
+  if (req.session.isLoggedIn && req.session.isAdmin) {
+    const ns = [req.body.sname, req.body.stype, req.body.sdesc];
+    db.run(
+      "INSERT INTO series (sname, stype, sdesc) VALUES (?, ?, ?)",
+      ns,
+      (error) => {
+        if (error) {
+          console.log("ERROR: ", error);
+        } else {
+          console.log("Series added!");
+        }
+        res.redirect("/series");
+      }
+    );
+  } else {
+    res.redirect("/login");
+  }
+});
+
+// Edit a series (GET and POST)
+app.get("/series/update/:id", (req, res) => {
+  if (req.session.isLoggedIn && req.session.isAdmin) {
+    const id = req.params.id;
+    db.get(
+      "SELECT * FROM series WHERE sid = ?",
+      [id],
+      function (error, theSeries) {
+        if (error) {
+          console.log("ERROR: ", error);
+          const model = {
+            dbError: true,
+            theError: error,
+            series: {},
+            isLoggedIn: req.session.isLoggedIn,
+            name: req.session.name,
+            isAdmin: req.session.isAdmin,
+          };
+          res.render("editSeries.handlebars", model);
+        } else {
+          const model = {
+            dbError: false,
+            theError: "",
+            series: theSeries,
+            isLoggedIn: req.session.isLoggedIn,
+            name: req.session.name,
+            isAdmin: req.session.isAdmin,
+          };
+          res.render("editSeries.handlebars", model);
+        }
+      }
+    );
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.post("/series/update/:id", (req, res) => {
+  if (req.session.isLoggedIn && req.session.isAdmin) {
+    const id = req.params.id;
+    const ns = [req.body.sname, req.body.stype, req.body.sdesc, id];
+    db.run(
+      "UPDATE series SET sname=?, stype=?, sdesc=? WHERE sid=?",
+      ns,
+      (error) => {
+        if (error) {
+          console.log("ERROR: ", error);
+        } else {
+          console.log("Series updated!");
+        }
+        res.redirect("/series");
+      }
+    );
+  } else {
+    res.redirect("/login");
+  }
+});
+
+// Delete a series (POST)
+app.post("/series/delete/:id", (req, res) => {
+  if (req.session.isLoggedIn && req.session.isAdmin) {
+    const id = req.params.id;
+    db.run("DELETE FROM series WHERE sid = ?", [id], (error) => {
+      if (error) {
+        console.log("ERROR: ", error);
+      } else {
+        console.log("Series deleted!");
+      }
+      res.redirect("/series");
+    });
+  } else {
+    res.redirect("/login");
+  }
+});
+
+
 // renders a view WITHOUT DATA
 app.get('/about', (req, res) => {
     res.render('about');
@@ -491,21 +724,6 @@ app.get('/about', (req, res) => {
 app.get('/menu', (req, res)=> {
   res.render('menu');
 });
-
-// renders a view WITHOUT DATA
-app.get('/contact', (req, res) => {
-    res.render('contact');
-});
-app.get("/", (req, res) => {
-  console.log("SESSION: ", req.session);
-  const model = {
-    isLoggedIn: req.session.isLoggedIn,
-    name: req.session.name,
-    isAdmin: req.session.isAdmin,
-  };
-  res.render("home.handlebars", model);
-});
-
 //shows each project on click
 app.get("/projects/:id", function (req, res) {
   const id = req.params.id;
@@ -554,8 +772,6 @@ app.get("/projects/:id", function (req, res) {
 });
 
 
-
-// renders a view WITH DATA!!!
 app.get("/projects", function (req, res) {
   db.all("SELECT * FROM projects", function (error, theProjects) {
     if (error) {

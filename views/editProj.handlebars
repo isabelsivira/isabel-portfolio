@@ -1,11 +1,9 @@
-<div id="modprojmain">
-  <div>
-    <h3>Edit project</h3>
-  </div>
-  <div>{{#if isLoggedIn}}
-      {{#if isAdmin}}
-        <form action="/projects/update/{{project.pid}}" method="post">
-          <fieldset>
+<form action="/projects/update/{{project.pid}}" method="post">
+  <div class="card" style="width: 18rem;">
+    <fieldset>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item">
             <label for="projname">Project name: </label>
             <input
               type="text"
@@ -14,7 +12,8 @@
               value="{{project.pname}}"
               required="required"
             />
-            <br>
+          </li>
+          <li class="list-group-item">
             <label for="projyear">Project year: </label>
             <input
               type="number"
@@ -24,19 +23,20 @@
               value="{{project.pyear}}"
               required="required"
             />
-            <br>
-            <br>
+          </li>
+          <li class="list-group-item">
             <label for="projtype">Project type: </label>
             <select
-              type="text"
               name="projtype"
               id="projtype"
               required="required"
             >
-              <option value="artwork"{{#if (typeDraw project.ptype)}} {{/if}}>artwork</option>
-              <option value="university project"{{#if (typeUni project.ptype)}} {{/if}}>university project</option>
+              <option value="Poster" {{#if (typePoster project.ptype)}} selected {{/if}}>Poster</option>
+              <option value="University project" {{#if (typeUni project.ptype)}} selected {{/if}}>University Project</option>
+              <option value="Art project" {{#if (typeArt project.ptype)}} selected {{/if}}>Art Project</option>
             </select>
-            <br>
+          </li>
+          <li class="list-group-item">
             <label for="projimg">Project image URL: </label>
             <input
               type="text"
@@ -46,10 +46,10 @@
               value="{{project.pimgURL}}"
               required="required"
             />
-          </fieldset>
-          <input type="submit" value="Modify project" />
-        </form>
-      {{/if}}
-    {{/if}}</div>
-
-</div>
+          </li>
+        </ul>
+      </div>
+    </fieldset>
+    <input type="submit" value="Modify project" />
+  </div>
+</form>

@@ -5,10 +5,22 @@
     box-sizing: content-box;
 }
 
+.container{
+    padding: 0;
+}
+
+h1, h2, h3 {
+    font-family: 'Silkscreen', sans-serif;
+font-family: 'Tsukimi Rounded', sans-serif;
+background-color: #fdc9da ;
+border-radius: 10px;
+padding: 8px;
+
+}
+
 /* Login page */
 
 #main {
-    width: 90%;
     margin: 0 auto;
     margin-bottom: 96px;
     margin-top: 32px;
@@ -79,5 +91,11 @@ font-weight: 600;
 }
 /* End of login page */
 
-
-  
+.home-flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+  }
